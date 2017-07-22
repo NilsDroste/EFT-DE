@@ -9,18 +9,19 @@ setwd("C:/Users/droste/.../EFT-GER/data/")
 # start -------------------------------------------------------------------
 
 df <- read.csv("panel.csv", sep=";", dec=",")
-df<-reshape(df, direction='long', varying=list(3:6,7:10,11:14,15:18,19:22,23:26,27:30,31:34,35:38,39:42,43:46,47:50,51:54,55:58), v.names=c("pop.dens","natsch.per","landsch.per","ges.per","natsch.tot","landsch.tot","ges.tot","ausg","BIP.cap","BWSagr", "BWSind","BWSser","pop","area"), idvar="ID", times=c(2012, 2010, 2008, 2006))
+df<-reshape(df, direction='long', varying=list(3:6,7:10,11:14,15:18,19:22,23:26,27:30,31:34,35:38,39:42,43:46,47:50,51:54,55:58), v.names=c("pop.dens","nat.per","land.per","tot.per","nat.tot","land.tot","tot.tot","spend","GDP.cap","VA.agr", "VA.ind","VA.ser","pop","area"), idvar="ID", years=c(2012, 2010, 2008, 2006))
 df<- df[order(df$No, df$time),] 
-df$nat.cap<-df$natsch.tot*1000000/df$pop
-df$land.cap<-df$landsch.tot*1000000/df$pop
-df$ges.cap<-df$ges.tot*1000000/df$pop
-df$ausg.cap<-df$ausg*1000000/df$pop
-df<-df[df$time %in% c(2006,2008,2010),]
+df$nat.cap<-df$nat.tot*1000000/df$pop
+df$land.cap<-df$land.tot*1000000/df$pop
+df$tot.cap<-df$tot.tot*1000000/df$pop
+df$spend.cap<-df$spend*1000000/df$pop
+names(df)[3] <- "year"
+df<-df[df$year %in% c(2006,2008,2010),]
 
 
 #summary table
 require(stargazer)
-stargazer(df[df$time %in% c(2006,2008,2010),c("nat.cap","land.cap","ges.cap","pop.dens","ausg.cap")], type = "html", title="Descriptive statistics", digits=1, out="summary.html",covariate.labels=c("Nature and species conservation area per capita in mÂ² (nat.cap)","Landscape protection area per capita in mÂ² (land.cap)","Total protected area per capita in mÂ² (tot.cap)","Population density in kmÂ²/capita (pop.dens)", "public expenditure environmental protection and nature conservation in â¬ per capita (spend.cap)"), notes = "Sources: authorsâ calculations based on IOER (2015) and Statistisches Bundesamt (personal communciation), monetary values are in constant â¬ 2005 prices.")
+stargazer(df[df$year %in% c(2006,2008,2010),c("nat.cap","land.cap","tot.cap","pop.dens", "GDP.cap", "VA.agr", "VA.ind", "spend.cap")], type = "latex", title="Descriptive statistics", digits=1, out="summary.tex",covariate.labels=c("Nature and species conservation area per capita in m^2 (nat.cap)","Landscape protection area per capita in m^2 (land.cap)","Total protected area per capita in m^2 (tot.cap)","Population density in persons/km^2 (pop.dens)", "GDP in € per capita (GDP.cap)", "Valued added agriculture as a percentage of total value added (VA.agr)", "Valued added industry as a percentage of total value added (VA.ind)", "public expenditure environmental protection and nature conservation in € per capita (spend.cap)"), notes = "Sources: authors' calculations based on IOER (2015) and Statistisches Bundesamt (personal communciation), monetary values are in constant € 2005 prices.")
 
 
 # regressions -------------------------------------------------------------
@@ -30,37 +31,37 @@ require(sandwich)
 
 #multicollinearity
 source("C:/Users/droste/.../panel_cor.R")
-pairs(~ log(nat.cap) + log(land.cap) + log(ges.cap) + log(pop.dens)+log(BIP.cap)+log(BWSagr)+log(BWSind)+log(BWSser)+log(ausg.cap)+as.integer(time)+ log(area), data=df, upper.panel=panel.cor, lower.panel=panel.smooth, pch=20)
-#exclude BIPcap, BWser, area due to correlation coefficients about or greater than 0.7
+pairs(~ log(nat.cap) + log(land.cap) + log(tot.cap) + log(pop.dens)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+log(VA.ser)+log(spend.cap)+as.integer(year)+ log(area), data=df, upper.panel=panel.cor, lower.panel=panel.smooth, pch=20)
+#exclude BIPcap, VA.er, area due to correlation coefficients about or greater than 0.7
 
 #regressions
 
 #nat
-f1.nat<-plm(log(nat.cap) ~ log(pop.dens)+log(BIP.cap)+as.integer(time), data=df, index=c("ID", "time"), model="within", effect="individual")
+f1.nat<-plm(log(nat.cap) ~ log(pop.dens)+log(GDP.cap)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
 summary(f1.nat)
 f1.nat.rob<-coeftest(f1.nat, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f1.nat.rob
 
-f2.nat<-plm(log(nat.cap) ~ log(pop.dens)+log(BIP.cap)+log(BWSagr)+log(BWSind)+log(ausg.cap)+as.integer(time), data=df, index=c("ID", "time"), model="within", effect="individual")
+f2.nat<-plm(log(nat.cap) ~ log(pop.dens)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+log(spend.cap)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
 summary(f2.nat)
 f2.nat.rob<-coeftest(f2.nat, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f2.nat.rob
 
 
 #land
-f1.land<-plm(log(land.cap) ~ log(pop.dens)+log(BIP.cap)+as.integer(time), data=df, index=c("ID", "time"), model="within", effect="individual")
+f1.land<-plm(log(land.cap) ~ log(pop.dens)+log(GDP.cap)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
 summary(f1.land)
 f1.land.rob<-coeftest(f1.land, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f1.land.rob
 
-f2.land<-plm(log(land.cap) ~ log(pop.dens)+log(BIP.cap)+log(BWSagr)+log(BWSind)+log(ausg.cap)+as.integer(time), data=df, index=c("ID", "time"), model="within", effect="individual")
+f2.land<-plm(log(land.cap) ~ log(pop.dens)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+log(spend.cap)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
 summary(f2.land)
 f2.land.rob<-coeftest(f2.land, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f2.land.rob
 
 
 #total
-f1.tot<-plm(log(ges.cap) ~ log(pop.dens)+log(BIP.cap)+as.integer(time), data=df, index=c("ID", "time"), model="within", effect="individual")
+f1.tot<-plm(log(tot.cap) ~ log(pop.dens)+log(GDP.cap)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
 summary(f1.tot)
 f1.tot.rob<-coeftest(f1.tot, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f1.tot.rob
 
-f2.tot<-plm(log(ges.cap) ~ log(pop.dens)+log(BIP.cap)+log(BWSagr)+log(BWSind)+log(ausg.cap)+as.integer(time), data=df, index=c("ID", "time"), model="within", effect="individual")
+f2.tot<-plm(log(tot.cap) ~ log(pop.dens)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+log(spend.cap)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
 summary(f2.tot)
 f2.tot.rob<-coeftest(f2.tot, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f2.tot.rob
 
@@ -142,7 +143,7 @@ plot(lev, main="leverage")
 require(stargazer)
 rob.se<-list(f1.nat.rob[,2],f2.nat.rob[,2],f1.land.rob[,2],f2.land.rob[,2],f1.tot.rob[,2],f2.tot.rob[,2])
 rob.p<-list(f1.nat.rob[,4],f2.nat.rob[,4],f1.land.rob[,4],f2.land.rob[,4],f1.tot.rob[,4],f2.tot.rob[,4])
-stargazer(f1.nat.rob, f2.nat.rob,f1.land.rob,f2.land.rob, f1.tot.rob, f2.tot.rob, dep.var.labels=c("ln of 'nature and species conservation' area in m² per capita", "ln of landscape protection area in m² per capita","ln of total protected area in ² per capita"), p=rob.p, se=rob.se, type="html", out="table1.htm", model.numbers = T, p=rob2.p, se=rob2.se, type="html", out="table2.htm", df=F, notes = "The panel data sample is balanced with n=16, T=3, N=nT=48. Robust standard errors are reported in parentheses below the estimated coefficients. Individual coefficients are indicated by a *10%, **5% or ***1% significance level. The models use an individual fixed effects specification.", notes.append = FALSE)
+stargazer(f1.nat, f2.nat,f1.land,f2.land, f1.tot, f2.tot, column.separate=c(2,2,2),column.labels=c("ln(nat.cap)", "ln(land.cap","ln(tot.cap)"), dep.var.labels.include=F,p=rob.p, se=rob.se, model.numbers = T, type="latex", out="table1.tex", df=F, notes = "The panel data sample is balanced with n=16, T=3, N=nT=48. Robust standard errors are reported in parentheses below the estimated coefficients. Individual coefficients are indicated by a *10%, **5% or ***1% significance level. The models use an individual fixed effects specification.", notes.append = FALSE)
 
 
 # mapping----
@@ -172,4 +173,48 @@ tiff("Fig1.tif", width = 21, height = 7, units = 'cm', res = 300, compression = 
 grid.arrange(nat.plot, land.plot, tot.plot, nrow=1, ncol=3)
 dev.off()
 
+# an additional set of regression -------------------------------------------------------------
 
+#nat
+f3.nat<-plm(log(nat.cap) ~ log(pop.dens)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f3.nat)
+f3.nat.rob<-coeftest(f3.nat, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f3.nat.rob
+
+f4.nat<-plm(log(nat.cap) ~ log(pop.dens)+spend.cap+I(spend.cap^2)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f4.nat)
+f4.nat.rob<-coeftest(f4.nat, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f4.nat.rob
+
+f5.nat<-plm(log(nat.cap) ~ log(pop.dens)+spend.cap+I(spend.cap^2)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f5.nat)
+f5.nat.rob<-coeftest(f5.nat, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f5.nat.rob
+
+#land
+f3.land<-plm(log(land.cap) ~ log(pop.dens)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f3.land)
+f3.land.rob<-coeftest(f3.land, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f3.land.rob
+
+f4.land<-plm(log(land.cap) ~ log(pop.dens)+spend.cap+I(spend.cap^2)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f4.land)
+f4.land.rob<-coeftest(f4.land, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f4.land.rob
+
+f5.land<-plm(log(land.cap) ~ log(pop.dens)+spend.cap+I(spend.cap^2)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f5.land)
+f5.land.rob<-coeftest(f5.land, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f5.land.rob
+
+
+#total
+f3.tot<-plm(log(tot.cap) ~ log(pop.dens)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f3.tot)
+f3.tot.rob<-coeftest(f3.tot, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f3.tot.rob
+
+f4.tot<-plm(log(tot.cap) ~ log(pop.dens)+spend.cap+I(spend.cap^2)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f4.tot)
+f4.tot.rob<-coeftest(f4.tot, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f4.tot.rob
+
+f5.tot<-plm(log(tot.cap) ~ log(pop.dens)+spend.cap+I(spend.cap^2)+log(GDP.cap)+log(VA.agr)+log(VA.ind)+as.integer(year), data=df, index=c("ID", "year"), model="within", effect="individual")
+summary(f5.tot)
+f5.tot.rob<-coeftest(f5.tot, vcov=function(x) vcovSCC(x, type="HC3", maxlag=1)); f5.tot.rob
+
+rob2.se<-list(f3.nat.rob[,2],f4.nat.rob[,2],f5.nat.rob[,2],f3.land.rob[,2],f4.land.rob[,2],f5.land.rob[,2],f3.tot.rob[,2],f4.tot.rob[,2],f5.tot.rob[,2])
+rob2.p<-list(f3.nat.rob[,4],f4.nat.rob[,4],f5.nat.rob[,4],f3.land.rob[,4],f4.land.rob[,4],f5.land.rob[,4],f3.tot.rob[,4],f4.tot.rob[,4],f5.tot.rob[,4])
+stargazer(f3.nat,f4.nat,f5.nat,f3.land,f4.land,f5.land,f3.tot,f4.tot,f5.tot, column.separate=c(3,3,3),column.labels=c("ln(nat.cap)", "ln(land.cap","ln(tot.cap)"), dep.var.labels.include=F, p=rob2.p, se=rob2.se, model.numbers = T, type="latex", out="table2.tex", df=F, notes = "The panel data sample is balanced with n=16, T=3, N=nT=48. Robust standard errors are reported in parentheses below the estimated coefficients. Individual coefficients are indicated by a *10%, **5% or ***1% significance level. The models use an individual fixed effects specification.", notes.append = FALSE)
