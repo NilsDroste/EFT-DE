@@ -9,7 +9,7 @@ setwd("C:/Users/droste/.../EFT-GER/data/")
 # start -------------------------------------------------------------------
 
 df <- read.csv("panel.csv", sep=";", dec=",")
-df<-reshape(df, direction='long', varying=list(3:6,7:10,11:14,15:18,19:22,23:26,27:30,31:34,35:38,39:42,43:46,47:50,51:54,55:58), v.names=c("pop.dens","nat.per","land.per","tot.per","nat.tot","land.tot","tot.tot","spend","GDP.cap","VA.agr", "VA.ind","VA.ser","pop","area"), idvar="ID", years=c(2012, 2010, 2008, 2006))
+df<-reshape(df, direction='long', varying=list(3:6,7:10,11:14,15:18,19:22,23:26,27:30,31:34,35:38,39:42,43:46,47:50,51:54,55:58), v.names=c("pop.dens","nat.per","land.per","tot.per","nat.tot","land.tot","tot.tot","spend","GDP.cap","VA.agr", "VA.ind","VA.ser","pop","area"), idvar="ID", times=c(2012, 2010, 2008, 2006))
 df<- df[order(df$No, df$time),] 
 df$nat.cap<-df$nat.tot*1000000/df$pop
 df$land.cap<-df$land.tot*1000000/df$pop
